@@ -1,3 +1,4 @@
 celery
 django-celery-results
-selenium
+requests
+bs4

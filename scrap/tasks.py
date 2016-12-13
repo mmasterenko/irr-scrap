@@ -1,37 +1,51 @@
-import os
-
-from selenium import webdriver
-from django.conf import settings
+import requests
+from bs4 import BeautifulSoup
 
 from .models import Ads, Categories
 from project.celery import app
 
-DRIVER_PATH = os.path.join(settings.BASE_DIR, 'bin/geckodriver')
 URL = 'http://m.irr.ru/food/'
+
+
+def get_base_url(url):
+    parsed = requests.utils.urlparse(url)
+    return '%s://%s' % (parsed.scheme, parsed.netloc)
 
 
 @app.task
 def get_ads(url, cat_id=None):
-    browser = webdriver.Firefox(executable_path=DRIVER_PATH)
-    browser.get(url)
-    items = browser.find_elements_by_class_name('listingItem__info')
+    response = requests.get(url)
+    bs = BeautifulSoup(response.text, 'html.parser')
+    items = bs.find_all('div', {'class': 'listingItem__info'})
+    count = 0
     for i, item in enumerate(items):
-        header = item.find_element_by_tag_name('a').text
-        price = item.find_element_by_tag_name('span').text
-        city = item.find_element_by_css_selector('p + p + p').text
+        header = item.a.text
+        price = item.span.b.text
+        try:
+            city = item.find_all('p')[2].text.strip()
+        except IndexError:
+            city = ''
         position = i + 1
         Ads.objects.create(header=header, price=price, city=city, position=position, category_id=cat_id)
-        return '%s ads processed in "%s"' % (i, url)
+        count += 1
+    show_more = bs.find('a', {'class': 'js-showMoreButton'})
+    if show_more:
+        href = show_more.attrs.get('href')
+        show_more_url = get_base_url(URL) + href
+        get_ads.delay(show_more_url, cat_id=cat_id)
+    return '%s ads processed in "%s"' % (count, url)
 
 
 @app.task
 def get_categories():
-    browser = webdriver.Firefox(executable_path=DRIVER_PATH)
-    browser.get(URL)
-    items = browser.find_elements_by_class_name('catList__item')
+    response = requests.get(URL)
+    bs = BeautifulSoup(response.text, 'html.parser')
+    items = bs.find('div', {'class': 'catList__body'}).find_all('a')
     count = 0
     for item in items:
-        obj = Categories.objects.create(name=item.text, url=item.get_attribute('href'))
+        name = item.find('span', {'class': 'catList__itemName'}).text
+        url = get_base_url(URL) + item.attrs.get('href')
+        obj, is_created = Categories.objects.get_or_create(name=name, url=url)
         get_ads.delay(obj.url, cat_id=obj.id)
         count += 1
     return '%s categories processed' % count
