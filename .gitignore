@@ -1,0 +1,8 @@
+*.log
+settings_dev.py
+.env
+.idea/
+__pycache__/
+db.sqlite3
+staticfiles/
+
