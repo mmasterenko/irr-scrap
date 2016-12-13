@@ -12,7 +12,7 @@ class Categories(models.Model):
 class Ads(models.Model):
     category = models.ForeignKey(Categories, verbose_name='категория', blank=True, null=True)
     header = models.CharField('заголовок', max_length=256)
-    city = models.CharField('город', max_length=64)
+    city = models.CharField('город', max_length=64, blank=True, null=True)
     price = models.CharField('цена', max_length=64)
     position = models.IntegerField('позиция объявления')
 
