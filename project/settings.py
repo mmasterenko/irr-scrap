@@ -124,7 +124,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
 ###################
 # celery settings #
 ###################
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = os.environ.get('REDIS_URL')
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
