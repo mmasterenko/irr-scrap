@@ -129,6 +129,8 @@ CELERY_RESULT_BACKEND = 'django-db'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
+CELERY_REDIS_MAX_CONNECTIONS = 15
+
 
 try:
     from .settings_dev import *
