@@ -1,3 +1,4 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 
@@ -10,6 +11,12 @@ URL = 'http://m.irr.ru/food/'
 def get_base_url(url):
     parsed = requests.utils.urlparse(url)
     return '%s://%s' % (parsed.scheme, parsed.netloc)
+
+
+@app.task
+def test_task(n):
+    time.sleep(n)
+    return 'have sleep %s seconds' % n
 
 
 @app.task
@@ -42,10 +49,14 @@ def get_categories():
     bs = BeautifulSoup(response.text, 'html.parser')
     items = bs.find('div', {'class': 'catList__body'}).find_all('a')
     count = 0
+    results = []
     for item in items:
         name = item.find('span', {'class': 'catList__itemName'}).text
         url = get_base_url(URL) + item.attrs.get('href')
         obj, is_created = Categories.objects.get_or_create(name=name, url=url)
-        get_ads.delay(obj.url, cat_id=obj.id)
+        res = get_ads.delay(obj.url, cat_id=obj.id)
+        results.append(res)
         count += 1
+    while not all([r.ready() for r in results]):
+        time.sleep(1)
     return '%s categories processed' % count
