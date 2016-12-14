@@ -16,11 +16,12 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 from django.conf import settings
-from scrap.views import testview
+from scrap.views import HomeView, check_task
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^$', testview, name='home'),
+    url(r'^$', HomeView.as_view(), name='home'),
+    url(r'^check', check_task, name='check_task'),
 ]
 
 if settings.DEBUG:
